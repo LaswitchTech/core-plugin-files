@@ -1,10 +1,3 @@
-//
-//   Core Framework - Script file
-//
-//   @license    MIT (https://mit-license.org/)
-//   @author     Louis Ouellet <louis@laswitchtech.com>
-//
-
 const FilePreviewModal = function(uuid){
     builder.Component(
         "modal",
@@ -104,19 +97,13 @@ const FileUploadModal = function(list = null, fields = {}, callback = null){
                                         // Save the checksum
                                         file.checksum = checksum;
 
-                                        // Add CSRF Token
-                                        file[CSRF_KEY] = CSRF_TOKEN;
-
                                         // AJAX Request
                                         $.ajax({
-                                            url: '/endpoint.php/files/upload',
+                                            url: '/api/files/upload',
+                                            headers: {'X-CSRF-Authorization': CSRF_KEY},
                                             type: 'POST',dataType: 'json',
                                             data: file,
                                             success: function(response) {
-
-                                                // Update the CSRF Token
-                                                CSRF_KEY = response.CSRF.key;
-                                                CSRF_TOKEN = response.CSRF.token;
 
                                                 // Check if the list is an object
                                                 if(list){
@@ -150,20 +137,6 @@ const FileUploadModal = function(list = null, fields = {}, callback = null){
                     },
                 },
                 function(form,component){
-
-                    // csrf
-                    form.add(
-                        {
-                            name: CSRF_KEY,
-                            label: 'csrf',
-                            icon: 'hash',
-                            type: 'hidden',
-                            value: CSRF_TOKEN,
-                        },
-                        function(input,form){
-                            input.css('display','none');
-                        },
-                    );
 
                     // file
                     form.add(
@@ -222,7 +195,7 @@ const FileModalArchive = function(file, item){
 
                         // AJAX Request
                         $.ajax({
-                            url: '/endpoint.php/files/archive?uuid='+file.uuid,
+                            url: '/api/files/archive?id='+file.id,
                             type: 'GET',dataType: 'json',
                             success: function(response) {
 
@@ -294,7 +267,7 @@ const FileModalRecover = function(file){
 
                         // AJAX Request
                         $.ajax({
-                            url: '/endpoint.php/files/recover?uuid='+file.uuid,
+                            url: '/api/files/recover?uuid='+file.uuid,
                             type: 'GET',dataType: 'json',
                             success: function(response) {
 
