@@ -1,42 +1,274 @@
 <?php
 
-/**
- * Core Framework - FilesEndpoint
- *
- * @license    MIT (https://mit-license.org/)
- * @author     Louis Ouellet <louis@laswitchtech.com>
- */
-
 // Import additionnal class into the global namespace
-use \LaswitchTech\Core\Abstracts\Endpoint;
+use \LaswitchTech\Core\Base\BaseEndpoint;
 
-class FilesEndpoint extends Endpoint {
+class FilesEndpoint extends BaseEndpoint {
 
     /**
      * Constructor
      */
     public function __construct()
     {
-
-        // Call Parent Constructor
+        // Call the parent constructor
         parent::__construct();
 
-        // Retrieve the namespace
-        $namespace = $this->Request->getNamespace();
-
-        // Set Global access
-        $this->Public = false;
+        // Initialize the Endpoint
+        $this->init('files');
 
         // Set Properties
-        switch($namespace){
+        $this->required = ['content','extension','name','size','type','checksum','targetId','targetTable'];
+
+        switch($this->Request->getNamespace()){
             case "/files/upload":
                 $this->Level = 2;
                 break;
-            case "/files/archive":
-            case "/files/recover":
-                $this->Level = 4;
-                break;
         }
+    }
+
+    /**
+     * Create a record
+     */
+    public function createAction(): array
+    {
+        // Import Global Classes
+        global $UUID;
+
+        // Call the parent constructor
+        $message = parent::createAction();
+
+        // Check if the record is accessible
+        if($message['status'] == 200){
+
+            // Retrieve the parameters
+            $parameters = $message['data']['parameters'];
+
+            // Initialize the fields array
+            $fields = [];
+
+            // Iniitialize the force update
+            $force = false;
+
+            // Check if the parameter force is set and filter it as a boolean
+            if(isset($parameters['force'])){
+                $force = filter_var($parameters['force'], FILTER_VALIDATE_BOOLEAN);
+                unset($parameters['force']);
+            }
+
+            // Check if checksum is valid
+            if(md5(explode(',', $parameters['content'])[1]) == $parameters['checksum']){
+
+                // Sanitize the path
+                $fields['path'] = trim($parameters['path'] ?? '', '/');
+
+                // Retrieve the content and checksum
+                $content = base64_decode(explode(',', $parameters['content'])[1]);
+                $fields['checksum'] = md5($content);
+
+                // Check if a file with the same checksum already exists
+                $file = $this->Model->Files->fetchByChecksum($fields['checksum']);
+
+                // Check if the file already exists
+                if(!empty($file)){
+
+                    // Set the file uuid
+                    $fields['uuid'] = $file['uuid'];
+                    $fields['path'] = $file['path'];
+                } else {
+
+                    // Set the file uuid
+                    $fields['uuid'] = $UUID->toString($message['data']['record']['id'].'-'.$message['data']['record']['checksum']);
+                }
+
+                // Save the file to the filesystem if it does not exist or if force is set to true
+                if($force || !$this->Helper->Files->exists($fields['path'] . DIRECTORY_SEPARATOR . $fields['uuid'])){
+                    $this->Helper->Files->save($fields['path'] . DIRECTORY_SEPARATOR . $fields['uuid'], $content);
+                }
+
+                // Check if the Event Plugin is accessible
+                if($this->Helper->Core->isInstalled('event')){
+
+                    // Initialize the Events
+                    $message['data']['event'] = [];
+
+                    // Setup a new event
+                    $event = [
+                        'category' => 'File',
+                        'message' => 'New File Created by <vcard>'.$this->Auth->user()->vcard['id'].':'.$this->Auth->user()->username.'</vcard>',
+                        'icon' => 'circle',
+                        'color' => 'secondary',
+                        'link' => '/plugin/'.$message['data']['record']['targetTable'].'/details?id='.$message['data']['record']['targetId'],
+                        'targetTable' => $message['data']['record']['targetTable'],
+                        'targetId' => $message['data']['record']['targetId'],
+                    ];
+
+                    // Create the event
+                    $message['data']['event'][] = $this->Model->Event->create($event);
+                }
+
+                // Check if $fields is empty
+                if(!empty($fields)){
+                    $affectedRows = $this->Model->Files->update($message['data']['record']['id'], $fields);
+                }
+
+                // Retrieve the record
+                $message['data']['record'] = $this->Model->Files->fetch($message['data']['record']['id']);
+            } else {
+                $this->Model->Files->delete($message['data']['record']['id']);
+                $message = ["status" => 400, "message" => "Bad Request", "data" => "The checksum is invalid."];
+            }
+        }
+
+        // Return the message
+        return $message;
+    }
+
+    /**
+     * Update a record
+     */
+    public function updateAction(): array
+    {
+        // Call the parent constructor
+        $message = parent::updateAction();
+
+        // Check if the record is accessible
+        if($message['status'] == 200){
+
+            // Check if the Event Plugin is accessible
+            if($this->Helper->Core->isInstalled('event')){
+
+                // Initialize the Events
+                $message['data']['event'] = [];
+
+                // Setup a new event
+                $event = [
+                    'category' => 'File',
+                    'message' => 'File Updated by <vcard>'.$this->Auth->user()->vcard['id'].':'.$this->Auth->user()->username.'</vcard>',
+                    'icon' => 'circle',
+                    'color' => 'secondary',
+                    'link' => '/plugin/'.$message['data']['record']['targetTable'].'/details?id='.$message['data']['record']['targetId'],
+                    'targetTable' => $message['data']['record']['targetTable'],
+                    'targetId' => $message['data']['record']['targetId'],
+                ];
+
+                // Create the event
+                $message['data']['event'][] = $this->Model->Event->create($event);
+            }
+        }
+
+        // Return the message
+        return $message;
+    }
+
+    /**
+     * Delete a record
+     */
+    public function deleteAction(): array
+    {
+        // Call the parent constructor
+        $message = parent::deleteAction();
+
+        // Check if the record is accessible
+        if($message['status'] == 200){
+
+            // Check if the Event Plugin is accessible
+            if($this->Helper->Core->isInstalled('event')){
+
+                // Initialize the Events
+                $message['data']['event'] = [];
+
+                // Setup a new event
+                $event = [
+                    'category' => 'File',
+                    'message' => 'File Deleted by <vcard>'.$this->Auth->user()->vcard['id'].':'.$this->Auth->user()->username.'</vcard>',
+                    'icon' => 'circle',
+                    'color' => 'secondary',
+                    'link' => '/plugin/'.$message['data']['record']['targetTable'].'/details?id='.$message['data']['record']['targetId'],
+                    'targetTable' => $message['data']['record']['targetTable'],
+                    'targetId' => $message['data']['record']['targetId'],
+                ];
+
+                // Create the event
+                $message['data']['event'][] = $this->Model->Event->create($event);
+            }
+        }
+
+        // Return the message
+        return $message;
+    }
+
+    /**
+     * Archive a record
+     */
+    public function archiveAction(): array
+    {
+        // Call the parent constructor
+        $message = parent::archiveAction();
+
+        // Check if the record is accessible
+        if($message['status'] == 200){
+
+            // Check if the Event Plugin is accessible
+            if($this->Helper->Core->isInstalled('event')){
+
+                // Initialize the Events
+                $message['data']['event'] = [];
+
+                // Setup a new event
+                $event = [
+                    'category' => 'File',
+                    'message' => 'File Archived by <vcard>'.$this->Auth->user()->vcard['id'].':'.$this->Auth->user()->username.'</vcard>',
+                    'icon' => 'circle',
+                    'color' => 'secondary',
+                    'link' => '/plugin/'.$message['data']['record']['targetTable'].'/details?id='.$message['data']['record']['targetId'],
+                    'targetTable' => $message['data']['record']['targetTable'],
+                    'targetId' => $message['data']['record']['targetId'],
+                ];
+
+                // Create the event
+                $message['data']['event'][] = $this->Model->Event->create($event);
+            }
+        }
+
+        // Return the message
+        return $message;
+    }
+
+    /**
+     * Recover a record
+     */
+    public function recoverAction(): array
+    {
+        // Call the parent constructor
+        $message = parent::recoverAction();
+
+        // Check if the record is accessible
+        if($message['status'] == 200){
+
+            // Check if the Event Plugin is accessible
+            if($this->Helper->Core->isInstalled('event')){
+
+                // Initialize the Events
+                $message['data']['event'] = [];
+
+                // Setup a new event
+                $event = [
+                    'category' => 'File',
+                    'message' => 'File Recovered by <vcard>'.$this->Auth->user()->vcard['id'].':'.$this->Auth->user()->username.'</vcard>',
+                    'icon' => 'circle',
+                    'color' => 'secondary',
+                    'link' => '/plugin/'.$message['data']['record']['targetTable'].'/details?id='.$message['data']['record']['targetId'],
+                    'targetTable' => $message['data']['record']['targetTable'],
+                    'targetId' => $message['data']['record']['targetId'],
+                ];
+
+                // Create the event
+                $message['data']['event'][] = $this->Model->Event->create($event);
+            }
+        }
+
+        // Return the message
+        return $message;
     }
 
     /**
@@ -46,227 +278,6 @@ class FilesEndpoint extends Endpoint {
      */
     public function uploadAction(): array
     {
-        // Import Global Variables
-        global $CSRF,$UUID;
-
-        // Set the default message
-        $message = ["status" => 200, "message" => "OK", "data" => []];
-
-        // Check the request method
-        if($this->Request->getMethod() == "POST"){
-            $message["data"]["CSRF"] = [
-                "token" => $CSRF->token(),
-                "key" => $CSRF->key()
-            ];
-        }
-
-        // Check if the Note is accessible
-        if($message['status'] == 200){
-
-            // Check the request method
-            if($this->Request->getMethod() == "POST"){
-
-                // Retrieve the parameters
-                $parameters = $this->Request->getParams('REQUEST');
-
-                // Set Required Fields
-                $required = ['content','extension','name','size','type','checksum','targetId','targetTable'];
-
-                // Set Unique Fields
-                $unique = ['id','created','modified','owner','organization'];
-
-                // Set Optional Fields
-                $optional = ['isPublic','path','icon','force'];
-
-                // Iniitialize the force update
-                $force = false;
-
-                // Check if the parameter force is set and filter it as a boolean
-                if(isset($parameters['force'])){
-                    $force = filter_var($parameters['force'], FILTER_VALIDATE_BOOLEAN);
-                    unset($parameters['force']);
-                }
-
-                // Check if all required fields are set
-                if(count(array_intersect_key(array_flip($required), $parameters)) == count($required)){
-
-                    // Check if checksum is valid
-                    if(md5(explode(',', $parameters['content'])[1]) == $parameters['checksum']){
-
-                        // Initialize the Events
-                        $message['data']['events'] = [];
-
-                        // Retrieve the user's username and vCard
-                        $owner = $this->Auth->user()->username;
-                        $organization = $this->Auth->user()->organization()->id;
-                        $vCard = $this->Auth->user()->vcard();
-
-                        // Initialize the file
-                        $file = [
-                            'owner' => $owner,
-                            'organization' => $organization,
-                        ];
-
-                        // Setup the file
-                        foreach($required as $key){
-                            if(isset($parameters[$key])){
-                                $file[$key] = $parameters[$key];
-                            }
-                        }
-                        foreach($optional as $key){
-                            if(isset($parameters[$key])){
-                                $file[$key] = $parameters[$key];
-                                if($key == 'isPublic'){
-                                    $file[$key] = intval($file[$key]);
-                                }
-                            }
-                        }
-                        unset($file['content']);
-                        if(!isset($file['path'])){
-                            $file['path'] = '';
-                        }
-                        $file['path'] = trim($file['path'],'/');
-
-                        // Retrieve the content and checksum
-                        $content = base64_decode(explode(',', $parameters['content'])[1]);
-                        $file['checksum'] = md5($content);
-
-                        // Check if a file with the same checksum already exists
-                        $existingFile = $this->Model->Files->lookup($file['checksum']);
-
-                        // Create the file in the database
-                        $file['id'] = $this->Model->Files->create($file);
-
-                        // Check if the file already exists
-                        if(!empty($existingFile)){
-
-                            // Set the file uuid
-                            $file['uuid'] = $existingFile['uuid'];
-                            $file['path'] = $existingFile['path'];
-
-                            // Update the file in the database
-                            $affectedRows = $this->Model->Files->update($file['id'], ['uuid' => $file['uuid'], 'path' => $file['path']]);
-                        } else {
-
-                            // Set the file uuid
-                            $file['uuid'] = $UUID->toString($file['id'].'-'.$file['checksum']);
-
-                            // Update the file in the database
-                            $affectedRows = $this->Model->Files->update($file['id'], ['uuid' => $file['uuid']]);
-                        }
-
-                        // Save the file to the filesystem
-                        if($force || !$this->Helper->Files->exists($file['path'] . DIRECTORY_SEPARATOR . $file['uuid'])){
-                            $this->Helper->Files->save($file['path'] . DIRECTORY_SEPARATOR . $file['uuid'], $content);
-                        }
-
-                        // Create the an event
-                        $message['data']['events'][] = $this->Model->Event->create($owner, $parameters['targetTable'], $parameters['targetId'], 'File', '<vcard>'.$vCard['id'].':'.$this->Auth->user()->username.'</vcard> has uploaded <file>'.$file['name'].'</file>.');
-
-                        // Retrieve the final file
-                        $file = $this->Model->Files->get($file['uuid']);
-                        $file['content'] = base64_encode($this->Helper->Files->get($file['path'] . DIRECTORY_SEPARATOR . $file['uuid']));
-                        $message['data']['record'] = $file;
-                    } else {
-                        $message['status'] = 400;
-                        $message['message'] = "Bad Request";
-                        $message['data']['error'] = "The checksum is invalid.";
-                    }
-                } else {
-                    $message['status'] = 400;
-                    $message['message'] = "Bad Request";
-                    $message['data']['error'] = "Some required fields are missing [";
-                    foreach($required as $key){
-                        if(!array_key_exists($key, $parameters)){
-                            $message['data']['error'] .= $key.", ";
-                        }
-                    }
-                    $message['data']['error'] = rtrim($message['data']['error'], ", ");
-                    $message['data']['error'] .= "]";
-                }
-            } else {
-                $message = ["status" => 405, "message" => "Method Not Allowed", "data" => "The method is not allowed for the requested URL."];
-            }
-        }
-
-        return $message;
-    }
-
-    /**
-     * Archive a File
-     */
-    public function archiveAction(): array
-    {
-        // Set the default message
-        $message = ["status" => 200, "message" => "OK", "data" => []];
-
-        // Retrieve the File
-        $file = $this->Model->Files->get($this->Request->getParams('GET','uuid'));
-
-        // Check if the File is accessible
-        if(empty($file)){
-            $message = ["status" => 404, "message" => "Not Found", "data" => "Could not find the requested file."];
-        } else {
-            if($file['organization']['id'] != $this->Auth->user()->organization()->id){
-                $message = ["status" => 403, "message" => "Forbidden", "data" => "You are not allowed to access this file."];
-            }
-        }
-
-        // Check if the Note is accessible
-        if($message['status'] == 200){
-
-            // Check the request method
-            if($this->Request->getMethod() == "GET"){
-
-                // Update the File
-                $affectedRows = $this->Model->Files->update($file['id'], ["isArchived" => 1]);
-
-                // Retrieve the Updated File
-                $message["data"]["record"] = $this->Model->Files->get($file['uuid']);
-            } else {
-                $message = ["status" => 400, "message" => "Bad Request", "data" => "Invalid Request Method"];
-            }
-        }
-
-        return $message;
-    }
-
-    /**
-     * Recover a File
-     */
-    public function recoverAction(): array
-    {
-        // Set the default message
-        $message = ["status" => 200, "message" => "OK", "data" => []];
-
-        // Retrieve the File
-        $file = $this->Model->Files->get($this->Request->getParams('GET','uuid'));
-
-        // Check if the File is accessible
-        if(empty($file)){
-            $message = ["status" => 404, "message" => "Not Found", "data" => "Could not find the requested file."];
-        } else {
-            if($file['organization']['id'] != $this->Auth->user()->organization()->id){
-                $message = ["status" => 403, "message" => "Forbidden", "data" => "You are not allowed to access this file."];
-            }
-        }
-
-        // Check if the Note is accessible
-        if($message['status'] == 200){
-
-            // Check the request method
-            if($this->Request->getMethod() == "GET"){
-
-                // Update the File
-                $affectedRows = $this->Model->Files->update($file['id'], ["isArchived" => 0]);
-
-                // Retrieve the Updated File
-                $message["data"]["record"] = $this->Model->Files->get($file['uuid']);
-            } else {
-                $message = ["status" => 400, "message" => "Bad Request", "data" => "Invalid Request Method"];
-            }
-        }
-
-        return $message;
+        return $this->createAction();
     }
 }

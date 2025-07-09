@@ -1,87 +1,121 @@
 <?php
 
-/**
- * Core Framework - FilesModel
- *
- * @license    MIT (https://mit-license.org/)
- * @author     Louis Ouellet <louis@laswitchtech.com>
- */
-
 // Import additionnal class into the global namespace
-use \LaswitchTech\Core\Abstracts\Model;
+use \LaswitchTech\Core\Base\BaseModel;
 
-class FilesModel extends Model {
-
-    // Properties
-    private $UUID;
-    private $Path;
+class FilesModel extends BaseModel {
 
     /**
      * Constructor
      */
     public function __construct()
     {
-        // Call the Parent Constructor
+        // Call the parent constructor
         parent::__construct();
 
-        // Import Global Variables
-        global $CONFIG, $UUID;
-
-        // Set Properties
-        $this->UUID = $UUID;
-        $this->Path = $CONFIG->root() . DIRECTORY_SEPARATOR . 'Data';
+        // Initialize the Model
+        $this->init('files');
     }
 
     /**
-     * Create a new file and return the id
+     * Retrieve multiple records
      *
-     * @param array $data
-     * @return int
+     * @param array $conditions
+     * @return array
      */
-    public function create(array $data): int
+    public function fetchAll(array $conditions = [], string $conjunction = 'AND'): array
     {
         // Create the Query
         $Query = $this->Database->query()
-            ->table('files')
-            ->insert($data);
+            ->table($this->table)
+            ->select('*')
+            ->join('owner', 'users', 'username')
+            ->join('organization', 'organizations', 'id')
+            ->filter()
+            ->where('id', 9999, '<>')
+            ->where('organization', $this->Auth->user()->organization()->id);
 
-        // Execute the Query
-        $affectedRows = $Query->execute();
+        // Check if the conditions are empty
+        if(!empty($conditions)){
 
-        // Execute the Query
-        return $Query->lastId();
+            // Add a Filter
+            $Query->filter();
+
+            // Add the Conditions
+            foreach($conditions as $key => $condition){
+
+                // Check if the key exists in the definition
+                if(!array_key_exists($condition['key'], $this->definition)){
+
+                    // Remove the key from the data
+                    unset($conditions[$key]);
+                    continue;
+                }
+
+                // Add the condition to the Query
+                $Query->where($condition["key"], $condition["value"], $condition["operator"], $conjunction);
+            }
+        }
+
+        // Retrieve the Results
+        $records = $Query->fetch();
+
+        // Loop through the records to process them
+        foreach($records as $key => $record){
+
+            // Overwrite the record with the processed one
+            $records[$key] = $this->process($record);
+        }
+
+        // Return the Results
+        return $records;
     }
 
     /**
-     * Update a file
+     * Retrieve a single record
      *
      * @param int $id
-     * @param array $data
-     * @return int
+     * @return array
      */
-    public function update(int $id, array $data): int
+    public function fetch(int $id): array
     {
         // Create the Query
         $Query = $this->Database->query()
-            ->table('files')
-            ->update($data)
-            ->where('id', $id);
+            ->table($this->table)
+            ->select('*')
+            ->join('owner', 'users', 'username')
+            ->join('organization', 'organizations', 'id')
+            ->filter()
+            ->where('id', 9999, '<>')
+            ->filter()
+            ->where($this->primary, $id)
+            ->limit(1);
 
-        // Execute the Query
-        return $Query->execute();
+        // Retrieve the record
+        $records = $Query->fetch();
+
+        // Loop through the records to process them
+        foreach($records as $key => $record){
+
+            // Overwrite the record with the processed one
+            $records[$key] = $this->process($record);
+        }
+
+        // Return the record or an empty array if not found
+        return $records[array_key_first($records)] ?? [];
     }
 
     /**
-     * Retrieve file's Details
+     * Retrieve a single record by UUID
      *
      * @param string $uuid
      * @return array
      */
-    public function get(string $uuid): array
+    public function fetchByUUID(string $uuid): array
     {
         // Create the Query
         $Query = $this->Database->query()
-            ->table('files')
+            ->table($this->table)
             ->select('*')
             ->join('owner', 'users', 'username')
             ->join('organization', 'organizations', 'id')
@@ -91,24 +125,31 @@ class FilesModel extends Model {
             ->where('uuid', $uuid)
             ->limit(1);
 
-        // Retrieve the Results
-        $result = $Query->result();
+        // Retrieve the record
+        $records = $Query->fetch();
 
-        // Return the Results
-        return $result[array_key_first($result)] ?? [];
+        // Loop through the records to process them
+        foreach($records as $key => $record){
+
+            // Overwrite the record with the processed one
+            $records[$key] = $this->process($record);
+        }
+
+        // Return the record or an empty array if not found
+        return $records[array_key_first($records)] ?? [];
     }
 
     /**
-     * Lookup a file by checksum
+     * Retrieve a single record by Checksum
      *
      * @param string $checksum
      * @return array
      */
-    public function lookup(string $checksum): array
+    public function fetchByChecksum(string $checksum): array
     {
         // Create the Query
         $Query = $this->Database->query()
-            ->table('files')
+            ->table($this->table)
             ->select('*')
             ->join('owner', 'users', 'username')
             ->join('organization', 'organizations', 'id')
@@ -118,10 +159,17 @@ class FilesModel extends Model {
             ->where('checksum', $checksum)
             ->limit(1);
 
-        // Retrieve the Results
-        $result = $Query->result();
+        // Retrieve the record
+        $records = $Query->fetch();
 
-        // Return the Results
-        return $result[array_key_first($result)] ?? [];
+        // Loop through the records to process them
+        foreach($records as $key => $record){
+
+            // Overwrite the record with the processed one
+            $records[$key] = $this->process($record);
+        }
+
+        // Return the record or an empty array if not found
+        return $records[array_key_first($records)] ?? [];
     }
 }
