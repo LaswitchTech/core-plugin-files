@@ -57,7 +57,9 @@ class FilesHelper extends Helper {
      */
     public function get(string $path): string
     {
-        // Get the file
-        return file_get_contents($this->Path . DIRECTORY_SEPARATOR . $path);
+        if($this->exists($path)) {
+            return file_get_contents($this->Path . DIRECTORY_SEPARATOR . $path);
+        }
+        return '';
     }
 }
