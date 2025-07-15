@@ -1,0 +1,141 @@
+{
+    "0": {
+        "Field": "id",
+        "Type": "bigint(20)",
+        "Null": "NO",
+        "Key": "PRI",
+        "Default": null,
+        "Extra": "auto_increment"
+    },
+    "1": {
+        "Field": "created",
+        "Type": "datetime",
+        "Null": "NO",
+        "Key": "",
+        "Default": "CURRENT_TIMESTAMP",
+        "Extra": ""
+    },
+    "2": {
+        "Field": "modified",
+        "Type": "datetime",
+        "Null": "NO",
+        "Key": "",
+        "Default": "CURRENT_TIMESTAMP",
+        "Extra": ""
+    },
+    "3": {
+        "Field": "owner",
+        "Type": "varchar(255)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "4": {
+        "Field": "name",
+        "Type": "varchar(255)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "5": {
+        "Field": "type",
+        "Type": "varchar(255)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "6": {
+        "Field": "extension",
+        "Type": "varchar(255)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "7": {
+        "Field": "path",
+        "Type": "text",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "8": {
+        "Field": "size",
+        "Type": "bigint(20)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "9": {
+        "Field": "checksum",
+        "Type": "varchar(255)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "10": {
+        "Field": "uuid",
+        "Type": "varchar(255)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "11": {
+        "Field": "icon",
+        "Type": "varchar(255)",
+        "Null": "YES",
+        "Key": "",
+        "Default": "file-earmark",
+        "Extra": ""
+    },
+    "12": {
+        "Field": "organization",
+        "Type": "bigint(20)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "13": {
+        "Field": "isPublic",
+        "Type": "int(1)",
+        "Null": "NO",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+    },
+    "14": {
+        "Field": "isArchived",
+        "Type": "int(1)",
+        "Null": "YES",
+        "Key": "",
+        "Default": "0",
+        "Extra": ""
+    },
+    "15": {
+        "Field": "targetTable",
+        "Type": "varchar(255)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "16": {
+        "Field": "targetId",
+        "Type": "bigint(20)",
+        "Null": "YES",
+        "Key": "",
+        "Default": null,
+        "Extra": ""
+    },
+    "engine": "InnoDB",
+    "charset": "utf8mb4",
+    "collation": "general_ci"
+}
