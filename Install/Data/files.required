@@ -1,0 +1,21 @@
+[
+    {
+        "id": 9999,
+        "created": "2025-04-07 15:10:38",
+        "modified": "2025-04-07 15:10:38",
+        "owner": "demo",
+        "name": null,
+        "type": null,
+        "extension": null,
+        "path": null,
+        "size": null,
+        "checksum": null,
+        "uuid": null,
+        "icon": null,
+        "organization": null,
+        "isPublic": 0,
+        "isArchived": 0,
+        "targetTable": null,
+        "targetId": null
+    }
+]
