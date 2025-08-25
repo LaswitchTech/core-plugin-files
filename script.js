@@ -15,7 +15,7 @@ const FilePreviewModal = function(uuid){
         function(modal,component){
 
             // Style the modal
-            component.header.addClass('text-bg-primary');
+            component.addClass('modal-primary');
             component.body.addClass('p-0');
             component.footer.remove();
 
@@ -56,7 +56,7 @@ const FileUploadModal = function(list = null, fields = {}, callback = null){
             const componentModal = component;
 
             // Style the modal
-            component.header.addClass('text-bg-info');
+            component.addClass('modal-info');
             component.footer.submit.addClass('btn-info').removeClass('btn-link').attr({
                 "style": "border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;",
             }).text(builder.Locale.get('Upload'));
@@ -216,7 +216,7 @@ const FileModalArchive = function(file, item){
             const componentModal = component;
 
             // Style the modal
-            component.header.addClass('text-bg-dark');
+            component.addClass('modal-dark');
             component.footer.submit.addClass('btn-dark').removeClass('btn-link').attr({
                 "style": "border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;",
             }).text(builder.Locale.get('Archive'));
@@ -285,7 +285,7 @@ const FileModalRecover = function(file){
             const componentModal = component;
 
             // Style the modal
-            component.header.addClass('text-bg-info');
+            component.addClass('modal-info');
             component.footer.submit.addClass('btn-info').removeClass('btn-link').attr({
                 "style": "border-bottom-right-radius: var(--bs-modal-inner-border-radius) !important;border-bottom-left-radius: var(--bs-modal-inner-border-radius) !important;",
             }).text(builder.Locale.get('Restore'));
