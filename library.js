@@ -570,7 +570,7 @@ builder.add('widgets','files', class extends builder.ComponentClass {
             {
                 icon: "archive",
                 title: this._builder.Locale.get("Are you sure?"),
-                body: this._builder.Locale.get("You are about to archive the selected files. Are you sure you want to continue?"),
+                body: this._builder.Locale.get("You are about to archive the selected file(s). Are you sure you want to continue?"),
                 color: 'dark',
                 callback: {
                     submit: function(element,modal){
