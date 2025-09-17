@@ -247,27 +247,15 @@ builder.add('widgets','files', class extends builder.ComponentClass {
         }
 
         // Retrieve Notes
-        $.ajax({
-            url: '/api/files/fetchAll',
-            headers: {'X-CSRF-Authorization': CSRF_KEY},
-            type: 'POST',dataType: 'json',
-            data: {
-                conditions: [
-                    {key: 'targetTable', operator: '=', value: this._properties.targetTable},
-                    {key: 'targetId', operator: '=', value: this._properties.targetId},
-                    {key: 'isArchived', operator: '<>', value: 1},
-                ]
-            },
-            error: function(xhr, status, error) {
-                console.error('Error fetching data:', error);
-                reject(error);
-            },
-            success: function(response) {
-
-                // Add Records
-                for(const [key, record] of Object.entries(response.records)){
-                    self.add(record);
-                }
+        API.endpoint('/files/fetchAll').data({
+            conditions: [
+                {key: 'targetTable', operator: '=', value: this._properties.targetTable},
+                {key: 'targetId', operator: '=', value: this._properties.targetId},
+                {key: 'isArchived', operator: '<>', value: 1},
+            ]
+        }).execute(function(response){
+            for(const [key, record] of Object.entries(response.records)){
+                self.add(record);
             }
         });
 
@@ -508,19 +496,11 @@ builder.add('widgets','files', class extends builder.ComponentClass {
                                         file.targetId = self._properties.targetId;
 
                                         // AJAX Request
-                                        $.ajax({
-                                            url: '/api/files/upload',
-                                            headers: {'X-CSRF-Authorization': CSRF_KEY},
-                                            type: 'POST',dataType: 'json',
-                                            data: file,
-                                            success: function(response) {
-
-                                                // Add the file to the explorer
-                                                self.add(response.record);
-
-                                                // Close the modal
-                                                modal.hide();
-                                            }
+                                        API.endpoint('/files/upload').data(file).execute(function(response){
+                                            self.add(response.record);
+                                            modal.hide();
+                                        },function(){
+                                            modal.hide();
                                         });
                                     }
                                 }).catch(error => {
@@ -583,25 +563,24 @@ builder.add('widgets','files', class extends builder.ComponentClass {
                             const file = self._files[id];
 
                             // AJAX Request - Archive the file
-                            $.ajax({
-                                url: '/api/files/archive?id='+id,
-                                type: 'GET',dataType: 'json',
-                                success: function(response) {
+                            API.endpoint('/files/archive?id='+id).execute(function(response){
+                                // Remove the file
+                                file.remove();
+                                delete self._files[id];
 
-                                    // Remove the file
-                                    file.remove();
-                                    delete self._files[id];
+                                // Remove from the selection
+                                self._selection = self._selection.filter(f => f !== id);
 
-                                    // Remove from the selection
-                                    self._selection = self._selection.filter(f => f !== id);
+                                // Update the counter
+                                self._component.controls.selection.count.text(self._selection.length + ' ' + self._builder.Locale.get('selected'));
 
-                                    // Update the counter
-                                    self._component.controls.selection.count.text(self._selection.length + ' ' + self._builder.Locale.get('selected'));
-
-                                    // Close the modal
-                                    if(self._selection.length === 0){
-                                        modal.hide();
-                                    }
+                                // Close the modal
+                                if(self._selection.length === 0){
+                                    modal.hide();
+                                }
+                            },function(xhr, status, error){
+                                if(self._selection.length === 0){
+                                    modal.hide();
                                 }
                             });
                         }

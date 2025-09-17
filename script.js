@@ -98,35 +98,30 @@ const FileUploadModal = function(list = null, fields = {}, callback = null){
                                         file.checksum = checksum;
 
                                         // AJAX Request
-                                        $.ajax({
-                                            url: '/api/files/upload',
-                                            headers: {'X-CSRF-Authorization': CSRF_KEY},
-                                            type: 'POST',dataType: 'json',
-                                            data: file,
-                                            success: function(response) {
+                                        API.endpoint('/files/upload').data(file).execute(function(response){
+                                            // Check if the list is an object
+                                            if(list){
 
-                                                // Check if the list is an object
-                                                if(list){
+                                                // Add the file to the list
+                                                list.add(
+                                                    {},
+                                                    function(item){
 
-                                                    // Add the file to the list
-                                                    list.add(
-                                                        {},
-                                                        function(item){
-
-                                                            // Format the file
-                                                            FileFormat(item, response.record);
-                                                        },
-                                                    );
-                                                }
-
-                                                // Check if a callback is defined
-                                                if(typeof callback === "function"){
-                                                    callback(response.record);
-                                                }
-
-                                                // Close the modal
-                                                modal.hide();
+                                                        // Format the file
+                                                        FileFormat(item, response.record);
+                                                    },
+                                                );
                                             }
+
+                                            // Check if a callback is defined
+                                            if(typeof callback === "function"){
+                                                callback(response.record);
+                                            }
+
+                                            // Close the modal
+                                            modal.hide();
+                                        },function(xhr, status, error){
+                                            modal.hide();
                                         });
                                     });
                                 }
@@ -194,17 +189,11 @@ const FileModalArchive = function(file, item){
                         spinner.removeClass('d-none');
 
                         // AJAX Request
-                        $.ajax({
-                            url: '/api/files/archive?id='+file.id,
-                            type: 'GET',dataType: 'json',
-                            success: function(response) {
-
-                                // Remove the item from the list
-                                item.remove();
-
-                                // Hide the modal
-                                modal.hide();
-                            }
+                        API.endpoint('/files/archive?id='+file.id).execute(function(response){
+                            item.remove();
+                            modal.hide();
+                        },function(xhr, status, error){
+                            modal.hide();
                         });
                     }, 300);
                 },
@@ -266,14 +255,10 @@ const FileModalRecover = function(file){
                         spinner.removeClass('d-none');
 
                         // AJAX Request
-                        $.ajax({
-                            url: '/api/files/recover?uuid='+file.uuid,
-                            type: 'GET',dataType: 'json',
-                            success: function(response) {
-
-                                // Hide the modal
-                                modal.hide();
-                            }
+                        API.endpoint('/files/recover?uuid='+file.uuid).execute(function(){
+                            modal.hide();
+                        },function(){
+                            modal.hide();
                         });
                     }, 300);
                 },
